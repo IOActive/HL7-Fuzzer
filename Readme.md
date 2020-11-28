@@ -156,7 +156,7 @@ DG1|1||786.50^CHEST PAIN, UNSPECIFIED^I9|||A
     MSH|^~\&|MegaReg|XYZHospC|SuperOE|XYZImgCtr|20060529090131-0500||ADT^A01^ADT_A01|01052901|P|2.5
     ```
   
-  * To have the ability to change the first segment ass the option --allparts 1 
+  * To have the ability to change the first segment pass the option --allparts 1 
   
     ```bash
     $ python3 hl7fuzz.py -f messages -s 100 --allparts 1  -d 192.168.1.3 -p 9550
