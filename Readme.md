@@ -163,7 +163,7 @@ DG1|1||786.50^CHEST PAIN, UNSPECIFIED^I9|||A
     ```
 
 ### The Fuzzing server
-  * The server simply replies with random data taken from `self.strats` to client's sending an HL7 message.
+  * The server simply replies with random data taken from `self.strats` to client sending an HL7 message.
   * The server session sqlite file will be saved in the DB folder with `-server` in the filename.
   * to start the server:
  
