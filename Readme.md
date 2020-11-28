@@ -107,7 +107,7 @@ optional arguments:
   * This message should be saved in the messages folder.
  
  ```bash
-   $ python3 hl7fuzz.py -f messages -s 100 --target "<fuzz>" -d 192.168.1.3 -p 9550
+   $ python3 hl7fuzz.py -f messages -s 100 --target "<fuzz>" -d 192.168.1.3 -p 9550 -m 2000
  ```
   
 ```reStructuredText
@@ -128,7 +128,7 @@ optional arguments:
   * When sending messages you might come across a reply saying that its a duplicate request. To get around this issue you can specify the field that needs to always have its value changed and the fuzzer will automatically do that for you.
 
     ```bash
-    $ python3 hl7fuzz.py -f messages -s 100 --change 1,2 -d 192.168.1.3 -p 9550
+    $ python3 hl7fuzz.py -f messages -s 100 --change 1,2 -d 192.168.1.3 -p 9550 -m 2000
     ```
  
   * the message will always change the second line in the message
@@ -166,6 +166,6 @@ DG1|1||786.50^CHEST PAIN, UNSPECIFIED^I9|||A
   * to start the server:
  
  ```bash
-  $python3 hl7fuzz.py --server 1 --serverport 9550 -m 3000
+  $python3 hl7fuzz.py --server 1 --serverport 9550 -m 2000
   ```
     
