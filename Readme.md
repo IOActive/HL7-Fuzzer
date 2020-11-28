@@ -101,7 +101,7 @@ optional arguments:
 
 * #### The --target option
 
-  * this option will allow you to selected specific fields of the message instead of random fields in the message.
+  * this option will allow you to select and fuzz specific fields of the message instead of random fields in the message.
   * If you want to fuzz all fields in a random manner, do not set this option.
   * By passing the target option a value of \<fuzz\> it will replace the chosen fields with fuzz data.
   * This message should be saved in the messages folder.
@@ -150,12 +150,14 @@ DG1|1||786.50^CHEST PAIN, UNSPECIFIED^I9|||A
 
   * if this option is set to zero it will not change any part of the first line of a message
 
-  * The line below will not be touched
+  * The line below will not be touched if --allparts is set to its default value of zero.
 
     ```reStructuredText
     MSH|^~\&|MegaReg|XYZHospC|SuperOE|XYZImgCtr|20060529090131-0500||ADT^A01^ADT_A01|01052901|P|2.5
     ```
-
+  
+  * To have the ability to change the first segment ass the option --allparts 1 
+  
     ```bash
     $ python3 hl7fuzz.py -f messages -s 100 --allparts 1  -d 192.168.1.3 -p 9550
     ```
