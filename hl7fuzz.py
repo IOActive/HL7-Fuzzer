@@ -13,7 +13,6 @@ import re
 import threading
 import _thread
 
-
 class hl7fuzz():
     def __init__(self, cmdargs):
         self.bq = queue.Queue()
@@ -29,14 +28,6 @@ class hl7fuzz():
                     self.badstrings.append(j.replace(b'\r\n',b''))
         self.badstrings = list(set(self.badstrings))
         self.badstrings.pop(0)
-        self.fmtstr = [b"%n"* randrange(1, self.cmdargs.max),b"%c"* randrange(1, self.cmdargs.max),
-                       b"%s"* randrange(1, self.cmdargs.max),b"%p"* randrange(1, self.cmdargs.max),b"%d"* randrange(1, self.cmdargs.max)]
-        self.sqli = [i for i in open('payloads/sqli.txt','rb').readlines()]
-        self.xss = [i for i in open('payloads/xss.txt', 'rb').readlines()]
-        self.elements = [b'^' * randrange(1, self.cmdargs.max), b'\\' * randrange(1, self.cmdargs.max),
-                         b'&' * randrange(1, self.cmdargs.max), b'~' * randrange(1, self.cmdargs.max)]
-        self.strats = [b"A" * randrange(1, self.cmdargs.max), urandom(randrange(1, self.cmdargs.max)), choice(self.elements),choice(self.sqli),choice(self.xss),
-                       choice(self.fmtstr),choice(self.badstrings)]
         self.sock = socket.socket()
         if self.cmdargs.server and self.cmdargs.serverport:
             self.hl7server()
@@ -72,6 +63,16 @@ class hl7fuzz():
         if self.cmdargs.target is not None:
             while not self.bq.empty():
                 msg = self.bq.get()
+                self.fmtstr = [b"%n" * randrange(1, self.cmdargs.max), b"%c" * randrange(1, self.cmdargs.max),
+                               b"%s" * randrange(1, self.cmdargs.max), b"%p" * randrange(1, self.cmdargs.max),
+                               b"%d" * randrange(1, self.cmdargs.max)]
+                self.sqli = [i for i in open('payloads/sqli.txt', 'rb').readlines()]
+                self.xss = [i for i in open('payloads/xss.txt', 'rb').readlines()]
+                self.elements = [b'^' * randrange(1, self.cmdargs.max), b'\\' * randrange(1, self.cmdargs.max),
+                                 b'&' * randrange(1, self.cmdargs.max), b'~' * randrange(1, self.cmdargs.max)]
+                self.strats = [b"A" * randrange(1, self.cmdargs.max), urandom(randrange(1, self.cmdargs.max)),
+                               choice(self.elements), choice(self.sqli), choice(self.xss),
+                               choice(self.fmtstr), choice(self.badstrings)]
                 for i in range(self.cmdargs.samples):
                     try:
                         msg1 = re.sub(self.cmdargs.target.encode() ,choice(self.strats),msg)
@@ -102,7 +103,10 @@ class hl7fuzz():
                             except:
                                 pass
                         msg.append(b'|'.join(arr2))
-                    self.fq.put(self.header + b''.join(msg) + self.tail)
+                    if self.cmdargs.clientmode == 0:
+                        self.fq.put(self.header + b''.join(msg) + self.tail)
+                    else:
+                        self.fq.put(b''.join(msg))
         while True:
             try:
                 sleep(10)
@@ -127,9 +131,14 @@ class hl7fuzz():
             if self.fq.empty():
                 break
             send_hl7 = self.fq.get()
-
-            self.sock.send(send_hl7)
-            recv_reply = self.sock.recv(5000)
+            try:
+                self.sock.send(send_hl7)
+                recv_reply = self.sock.recv(5000)
+            except Exception as e:
+                self.sock.close()
+                self.transmit()
+                print(e)
+                continue
             if self.cmdargs.noisey:
                 print(f"{'-' * 40}Q-size[{self.fq.qsize()}]\nSent:\n{send_hl7}\n++++++++++++++++++++++\nRecevied:\n{recv_reply}")
             else:
@@ -139,6 +148,7 @@ class hl7fuzz():
                 dbconnect.execute(_insert.execution_options(autocommit=True))
             except Exception as e:
                 print("failed to insert into DB")
+
             sleep(self.cmdargs.delay)
         dbconnect.close()
         self.sock.close()
@@ -149,6 +159,16 @@ class hl7fuzz():
         dbobj, _table = self.dbSRhl7()
         dbconnect = dbobj.connect()
         while True:
+            self.fmtstr = [b"%n" * randrange(1, self.cmdargs.max), b"%c" * randrange(1, self.cmdargs.max),
+                           b"%s" * randrange(1, self.cmdargs.max), b"%p" * randrange(1, self.cmdargs.max),
+                           b"%d" * randrange(1, self.cmdargs.max)]
+            self.sqli = [i for i in open('payloads/sqli.txt', 'rb').readlines()]
+            self.xss = [i for i in open('payloads/xss.txt', 'rb').readlines()]
+            self.elements = [b'^' * randrange(1, self.cmdargs.max), b'\\' * randrange(1, self.cmdargs.max),
+                             b'&' * randrange(1, self.cmdargs.max), b'~' * randrange(1, self.cmdargs.max)]
+            self.strats = [b"A" * randrange(1, self.cmdargs.max), urandom(randrange(1, self.cmdargs.max)),
+                           choice(self.elements), choice(self.sqli), choice(self.xss),
+                           choice(self.fmtstr), choice(self.badstrings)]
             try:
                 try:
                     msg = clientS.recv(1024)
@@ -157,7 +177,8 @@ class hl7fuzz():
                     break
                 if not msg:
                     break
-                send_hl7 = self.header+choice(self.strats)+self.tail
+                send_hl7 = self.header+choice(self.strats)+self.tail if self.cmdargs.servermode == 0 else b"\x01"+choice(self.strats)
+                print(f"\n\n{send_hl7}\n\n---------------------------")
                 clientS.send(send_hl7)
                 try:
                     _insert = _table.insert().values(sent=send_hl7, recv=msg)
@@ -193,7 +214,9 @@ if __name__ == '__main__':
     cmdopts.add_argument("-a", "--allparts", help="This will allow you to parse the first segment of an HL7 message instead of skipping the first segment.", required=False, type=int ,default=0)
     cmdopts.add_argument("-v", "--noisey",help="to show both sent and received messages set this to 1",required=False, type=int, default=0)
     cmdopts.add_argument("-x", "--delay", help="delay interval between sending packets. Set this to 0 for DoS attack/stress testing.", required=False,type=int, default=1)
-    cmdopts.add_argument("-b","--server",help="Setup a server to respond with malicious HL7 messages.",required=False)
+    cmdopts.add_argument("-b","--server",help="Setup a server to respond with malicious HL7 messages.",required=False , default=0)
     cmdopts.add_argument("-bp", "--serverport", help="Setup the server port respond with malicious HL7 messages.",required=False, type=int)
+    cmdopts.add_argument("-bm", "--servermode", help="Setup the server to respond with malicious (generic or HL7) messages.", required=False, type=int)
+    cmdopts.add_argument("-cm", "--clientmode", help="Setup the client to respond with malicious (generic or HL7) messages.", required=False, type=int)
     cmdargs = cmdopts.parse_args()
     hl7f = hl7fuzz(cmdargs)
