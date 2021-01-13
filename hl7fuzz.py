@@ -177,7 +177,7 @@ class hl7fuzz():
                     break
                 if not msg:
                     break
-                send_hl7 = self.header+choice(self.strats)+self.tail if self.cmdargs.servermode == 0 else b"\x01"+choice(self.strats)
+                send_hl7 = self.header+choice(self.strats)+self.tail if self.cmdargs.servermode == 0 else choice(self.strats)
                 print(f"\n\n{send_hl7}\n\n---------------------------")
                 clientS.send(send_hl7)
                 try:
